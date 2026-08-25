@@ -2,7 +2,7 @@
 
 A client-side Fabric mod for Minecraft Java Edition that indexes the contents of containers you have opened and lets you search and retrieve items from them.
 
-findmyitems downloads: 133
+findmyitems downloads: 134
 
 ## Overview
 
