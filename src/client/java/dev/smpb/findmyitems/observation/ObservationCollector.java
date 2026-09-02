@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public final class ObservationCollector {
-    /** Containers re-read per tick. Small enough that a big base costs a slice, not a stutter. */
+    /** Maximum containers re-scanned per tick; large bases cost a slice, not a hitch. */
     private static final int RESCAN_BATCH = 8;
     /** How often the ender inventory is re-read from player data. Costs no world access. */
     private static final int ENDER_SYNC_INTERVAL_TICKS = 100;
@@ -79,8 +79,8 @@ public final class ObservationCollector {
         }
         drainRescanQueue(client);
 
-        // Deliberately on its own clock rather than the rescan interval: this costs no chunk load
-        // and no block lookup, so turning world rescanning off is no reason to stop reading it.
+        // Use a separate clock: ender sync needs no chunk load or block lookup, so disabling world
+        // rescanning should not stop it.
         if (config.indexEnderInventory && ++enderCounter >= ENDER_SYNC_INTERVAL_TICKS) {
             enderCounter = 0;
             syncEnderInventory(client);
@@ -132,13 +132,12 @@ public final class ObservationCollector {
     }
 
     /**
-     * Re-reads the ender inventory straight off the player.
+     * Re-reads the ender inventory from the player.
      *
-     * <p>Every other container has to be found in the world before it can be counted, which is why
-     * an ender chest you walked away from used to go stale. This one does not: the items are on the
-     * player, so the count stays true from anywhere. It is written with no access source, because
-     * knowing what is in there is not the same as being able to reach it — the catalog shows that
-     * stock as out of reach until you are standing at an ender chest.
+     * <p>Other containers must be found in-world to stay current; ender contents live on the
+     * player, so their count remains accurate from anywhere. No access source is recorded because
+     * knowing what is stored there is not the same as being able to reach it — the catalog shows
+     * that stock as out of reach until the player stands at an ender chest.
      */
     private void syncEnderInventory(Minecraft client) {
         var server = client.getSingleplayerServer();
@@ -152,8 +151,8 @@ public final class ObservationCollector {
 
             var slots = SlotReader.readContainerSlots(serverPlayer.getEnderChestInventory(), serverPlayer);
             client.execute(() -> {
-                // An empty ender chest nobody has ever used is not worth an index entry; an empty
-                // one that used to hold something is, or the old contents would never clear.
+                // Do not index a never-used empty ender chest; index a previously used empty one,
+                // otherwise stale contents never clear.
                 var known = index.snapshot().containers().stream()
                         .anyMatch(container -> container.contentsKey().equals(SourceKey.enderInventory()));
                 if (slots.isEmpty() && !known) return;
@@ -164,12 +163,11 @@ public final class ObservationCollector {
     }
 
     /**
-     * Lines up every remembered container to be re-read.
+     * Queues every remembered container for rescanning.
      *
-     * <p>Queued rather than done here: re-reading a large base in one go means walking every slot
-     * of every container in range, plus their nested shulkers, inside a single server tick. That is
-     * a visible hitch every interval. {@link #RESCAN_BATCH} containers a tick spreads the same work
-     * flat, and the queue is rebuilt from scratch each interval so it cannot drift out of date.
+     * <p>Re-reading a large base in one tick walks every slot and nested shulker, causing a hitch.
+     * Processing {@link #RESCAN_BATCH} containers per tick spreads the work, and rebuilding the
+     * queue each interval prevents it from drifting out of date.
      */
     private void queueContainerRescan() {
         rescanQueue.clear();

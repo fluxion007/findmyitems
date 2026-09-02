@@ -171,8 +171,8 @@ public final class CatalogScreen extends Screen {
      * List or grid, read from the config every time.
      *
      * <p>Not a field: the screen is rebuilt from scratch on every press of the open key, so anything
-     * kept here is forgotten the moment you close the catalog. It is a preference about how you like
-     * to read a list, which makes it config-shaped — and that also carries it across a restart.
+     * kept here is forgotten when the catalog closes. It is a reading preference, so it belongs in
+     * the config and persists across restarts.
      */
     private Layout layout() {
         return config.gridLayout ? Layout.GRID : Layout.LIST;
@@ -640,7 +640,7 @@ public final class CatalogScreen extends Screen {
         var cards = new ArrayList<ContainerCard>();
 
         var hasEnder = known.stream().anyMatch(c -> c.contentsKey().equals(SourceKey.enderInventory()));
-        // The ender chest is always reachable in spirit, so it heads the list even when unseen.
+        // The ender inventory remains reachable without a visible chest, so it heads the list.
         if (!hasEnder && currentQuery.isBlank()) {
             cards.add(ContainerCard.emptyEnder());
         }
@@ -1020,7 +1020,7 @@ public final class CatalogScreen extends Screen {
         return new TakePlan(count, unreachableCount(item) > 0 ? Limit.UNREACHABLE : Limit.STOCK);
     }
 
-    /** Stock the row counts but no position can be walked to — a remembered ender inventory. */
+    /** Stock counted by the row but with no reachable position: a remembered ender inventory. */
     private static int unreachableCount(ItemResult item) {
         return item.sources().stream()
                 .filter(source -> source.source().positions().isEmpty())
@@ -1126,7 +1126,7 @@ public final class CatalogScreen extends Screen {
         return new ItemStack(containerItem(kind)).getHoverName().getString();
     }
 
-    /** Stack-size style label: 4 chars max, so it fits in the item slot corner. */
+    /** Stack-size label limited to four characters so it fits in the item-slot corner. */
     static String compactCount(long count) {
         if (count < 1000) return String.valueOf(count);
         if (count < 100_000) return (count / 1000) + "k";

@@ -2,8 +2,8 @@
 
 ## Goal
 
-Make a newly opened catalog request one item by default instead of 64, while preserving the
-existing ability to type a different amount. Publish the change as version `0.1.3` to GitHub and
+Make a newly opened catalog request default to one item instead of 64 while preserving the
+existing ability to enter a different amount. Publish the change as version `0.1.3` to GitHub and
 Modrinth from the same commit and tag.
 
 ## Behavior
@@ -25,5 +25,5 @@ Modrinth from the same commit and tag.
 ## Safety and Verification
 
 The change must not alter item conservation, component identity, retrieval limits, or crafting
-calculation. The Modrinth token is supplied only through the environment. The release is complete
+calculations. The Modrinth token is supplied only through the environment. The release is complete
 only after GitHub and Modrinth both report the published `0.1.3` version.

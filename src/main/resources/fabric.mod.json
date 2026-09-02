@@ -2,15 +2,15 @@
   "schemaVersion": 1,
   "id": "findmyitems",
   "version": "${version}",
-  "name": "findmyitems",
+  "name": "Find My Items",
   "description": "Indexes opened containers, searches items and crafting materials, and safely gathers or retrieves them from one screen. Crafting-table recipes only; single-player worlds only.",
   "authors": ["SonicKarnati"],
   "icon": "assets/findmyitems/icon.png",
   "license": "All-Rights-Reserved",
   "contact": {
-    "homepage": "https://github.com/SonicKarnati/findmyitems",
-    "sources": "https://github.com/SonicKarnati/findmyitems",
-    "issues": "https://github.com/SonicKarnati/findmyitems/issues"
+    "homepage": "https://github.com/simply-sunny/find-my-items",
+    "sources": "https://github.com/simply-sunny/find-my-items",
+    "issues": "https://github.com/simply-sunny/find-my-items/issues"
   },
   "environment": "client",
   "accessWidener": "findmyitems.accesswidener",

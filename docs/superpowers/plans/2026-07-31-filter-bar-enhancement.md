@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add independent survival-inventory and container filter-bar settings and make live filtering search complete item tooltip text, including enchantments.
+**Goal:** Add independent survival-inventory and container filter-bar settings, and make live filtering search complete item tooltip text, including enchantments.
 
 **Architecture:** Extend the shared `ModConfig` and existing Cloth Config screen. Classify eligible screens in `InventorySearchController`, then build one normalized search document from display name, item ID, and rendered tooltip lines before dimming non-matches. Keep creative inventory excluded and preserve the single-player boundary.
 

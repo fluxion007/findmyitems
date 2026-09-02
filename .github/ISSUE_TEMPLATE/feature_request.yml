@@ -1,12 +1,12 @@
 name: Feature request
-description: Suggest functionality the mod does not currently have
+description: Suggest functionality the mod does not yet have
 labels: ["enhancement", "needs triage"]
 body:
   - type: textarea
     id: problem
     attributes:
       label: What you were trying to do
-      description: Describe the situation in your world rather than the feature itself. A described problem allows for a wider range of solutions.
+      description: Describe the situation in your world, rather than the feature itself. A clear problem allows for a wider range of solutions.
       placeholder: I have eleven chests of building blocks and cannot remember which one holds deepslate.
     validations:
       required: true
@@ -14,9 +14,9 @@ body:
     id: idea
     attributes:
       label: Suggested behaviour
-      description: Optional. Describe the change you have in mind, if you have a specific one.
+      description: Optional. Describe the change you have in mind, if you have one.
   - type: textarea
     id: alternatives
     attributes:
       label: What you currently do instead
-      description: Include other mods that already do this, if any.
+      description: Mention any other mods that already provide this functionality.

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make nested shulker results retrieve the whole box, improve enchantment-aware search and ranking, stabilize catalog refreshes, remove creative-only crafting targets, and provide automated plus manual test fixtures.
+**Goal:** Make nested shulker results retrieve the whole box, improve enchantment-aware search and ranking, stabilize catalog refreshes, exclude creative-only crafting targets, and provide automated and manual test fixtures.
 
 **Architecture:** Preserve nested item search results but attach exact container-slot provenance for the outermost shulker. Share searchable-document construction and matching between the catalog index and vanilla container filter, while keeping server-side retrieval authoritative. Keep ranking and scroll restoration separate from item identity and retrieval validation.
 
@@ -52,7 +52,7 @@
 
 - [ ] **Step 1: Write failing tests** for a chest slot containing a shulker with a gold stack: the gold snapshot must expose the outer shulker slot, and a second nested shulker must retain the outermost holder rather than replacing it.
 - [ ] **Step 2: Run the focused tests** with `./gradlew test --tests '*ObservationBuilderTest*'`; expect failure because snapshots do not expose provenance.
-- [ ] **Step 3: Add the immutable provenance record** and thread it through recursive `SlotReader` traversal. The direct slot path must be stable and bounded by the existing nesting limit.
+- [ ] **Step 3: Add the immutable provenance record** and thread it through recursive `SlotReader` traversal. The direct-slot path must be stable and bounded by the existing nesting limit.
 - [ ] **Step 4: Run the focused tests** again; expect PASS and verify existing component-key tests still pass.
 - [ ] **Step 5: Commit** with `git add src/main/java src/test/java && git commit -m "feat: retain nested item provenance"`.
 
@@ -116,7 +116,7 @@
 - [ ] **Step 1: Write failing client/unit tests** that set a nonzero catalog scroll, increment the index revision, tick the screen, and assert the scroll remains; add a crafting assertion that command blocks and barriers are absent while ordinary recipe outputs remain.
 - [ ] **Step 2: Run the focused client tests** using the repository’s existing client-test task; expect failure on scroll reset and creative outputs.
 - [ ] **Step 3: Separate explicit rebuilds from revision refreshes** and restore the old scroll amount after replacing rows when the query/view/layout identity is unchanged.
-- [ ] **Step 4: Apply the authoritative vanilla survival-availability check** when building the craftable output index, avoiding a manually maintained item-name list.
+- [ ] **Step 4: Apply the authoritative vanilla survival-availability check** when building the craftable-output index, avoiding a manually maintained item-name list.
 - [ ] **Step 5: Run client and crafting tests** and expect PASS.
 - [ ] **Step 6: Commit** with `git add src/client src/main src/gametest && git commit -m "fix: stabilize catalog refreshes and crafting targets"`.
 
@@ -135,7 +135,7 @@
 - `/function findmyitems:reset` removes and recreates the fixture without affecting unrelated player/world content.
 
 - [ ] **Step 1: Create the data pack** with version metadata, deterministic room construction, item NBT/components, signs, and reset behavior. Keep commands compatible with the repository’s Minecraft version.
-- [ ] **Step 2: Add README instructions** for copying the pack into a test world, running setup/reset, opening each container once so the index observes it, and manually checking search, whole-box Take, scroll preservation, and crafting exclusions.
+- [ ] **Step 2: Add README instructions** for copying the pack into a test world, running setup/reset, opening each container once so the index can observe it, and manually checking search, whole-box Take, scroll preservation, and crafting exclusions.
 - [ ] **Step 3: Remove only redundant comments and dead code** in modified files. Retain conservation, registry, and single-player rationale comments.
 - [ ] **Step 4: Run `git diff --check`** and inspect the complete diff for accidental scope expansion.
 - [ ] **Step 5: Run `./gradlew build`**; expected result is BUILD SUCCESSFUL.

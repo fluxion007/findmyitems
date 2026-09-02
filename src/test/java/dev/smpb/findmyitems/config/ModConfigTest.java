@@ -15,7 +15,7 @@ final class ModConfigTest {
     void searchDistanceIsChunksAndConvertsToBlocks() {
         var config = new ModConfig();
 
-        assertEquals(4, config.searchDistanceChunks, "the default is the 64 blocks this used to be");
+        assertEquals(4, config.searchDistanceChunks, "default is 64 blocks (4 chunks)");
         assertEquals(64, config.searchDistanceBlocks());
         assertTrue(config.filterInventory);
         assertTrue(config.filterContainers);

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a Minecraft Java 26.2 client-side Fabric mod that remembers searched containers, safely retrieves reachable items, and recursively plans and fetches materials for manual crafting requests.
+**Goal:** Build a client-side Fabric mod for Minecraft Java 26.2 that remembers searched containers, safely retrieves reachable items, and recursively plans and fetches materials for manual crafting requests.
 
 **Architecture:** Pure Java modules own item identity, indexing, persistence, retrieval state, recipe planning, and batch coordination. Minecraft-specific classes are adapters at narrow seams; Fabric screens only consume immutable view models and submit commands. Every transfer is revalidated through the live vanilla screen handler.
 
@@ -292,7 +292,7 @@ public record SavedCraftRequest(StackKey output, int count) {
 }
 ```
 
-- [ ] **Step 2: Verify failure, implement schema `1`, Gson DTO conversion, `.tmp` write, `.bak` rotation, and atomic move fallback.**
+- [ ] **Step 2: Verify the failure, then implement schema `1`, Gson DTO conversion, `.tmp` writes, `.bak` rotation, and atomic-move fallback.**
 
 Do not serialize domain records directly. `StoreDocument` owns JSON names; `JsonWorldStore` converts explicitly so schema changes remain local.
 
@@ -321,7 +321,7 @@ public record ContainerShape(ContainerKind kind, int storageSlots, List<BlockPos
 
 Resolve a double chest from block state and neighboring half before creating `SourceKey`. Encode each non-empty `ItemStack` with registry ID, data components via Minecraft's codec/registry ops, hover name, tooltip, and live count. For ender chests, persist the shared inventory under a logical ender source and record access positions separately.
 
-- [ ] **Step 3: Register screen-init, client-tick, join, disconnect, and world-change callbacks in the composition root. Debounce persistence outside rendering.**
+- [ ] **Step 3: Register screen-initialization, client-tick, join, disconnect, and world-change callbacks in the composition root. Debounce persistence outside rendering.**
 - [ ] **Step 4: Run unit tests and `./gradlew runClient`; use a development world to open every supported shape and confirm snapshots in the JSON file.**
 
 Expected: utility screens create no observations; reopening replaces counts.
@@ -397,7 +397,7 @@ Commit: `feat: model safe retrieval transactions`
 
 - [ ] **Step 1: Wire right-click to `OneStack`, Shift-right-click to `AllMatching`, and Shift-scroll to a positive `ExactCount` shown in the tooltip.**
 - [ ] **Step 2: Implement interaction, menu matching, live snapshot refresh, and stack re-find by complete `StackKey`.**
-- [ ] **Step 3: Implement acknowledged QUICK_MOVE for whole stacks and serialized PICKUP/place-one actions for exact counts, advancing only after menu revision/slot state changes. Bound the action count to the request and one action per client tick.**
+- [ ] **Step 3: Implement acknowledged QUICK_MOVE for whole stacks and serialized PICKUP/place-one actions for exact counts, advancing only after menu-revision or slot-state changes. Bound the action count to the request and to one action per client tick.**
 - [ ] **Step 4: Restore catalog query/selection and show the exact terminal result.**
 - [ ] **Step 5: Execute every retrieval scenario in the manual test document and inspect `run/logs/latest.log`.**
 
@@ -484,7 +484,7 @@ Commit: `feat: fetch crafting materials across containers`
 - Modify build files only if verified dependency/profile configuration requires it.
 
 - [ ] **Step 1: Pin current Minecraft 26.2-compatible Sodium, Lithium, FerriteCore, and ScalableLux artifacts in a local test profile without making them runtime dependencies. Record exact versions and download sources.**
-- [ ] **Step 2: Run the complete manual matrix in clean Fabric and performance profiles: supported shapes, utility exclusions, search, restart persistence, changed/destroyed/obstructed source, full inventory, death/respawn, dimension change, one/all/exact retrieval, recursive plan, multi-source fetch, capacity pause/resume, and crash-safe store recovery.**
+- [ ] **Step 2: Run the complete manual matrix in clean Fabric and performance profiles: supported shapes, utility exclusions, search, restart persistence, changed, destroyed, and obstructed sources, full inventory, death/respawn, dimension changes, one/all/exact retrieval, recursive planning, multi-source fetching, capacity pause/resume, and crash-safe store recovery.**
 - [ ] **Step 3: Test GUI scales and both OpenGL and experimental Vulkan when the machine supports Vulkan; record `not available on test hardware` rather than claiming a pass if it does not.**
 - [ ] **Step 4: Run final automated verification.**
 

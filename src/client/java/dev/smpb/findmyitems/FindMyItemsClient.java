@@ -44,11 +44,8 @@ public final class FindMyItemsClient implements ClientModInitializer {
     }
 
     /**
-     * The one config instance everything reads.
-     *
-     * <p>There must only ever be one. The settings screen used to load its own copy from disk, so
-     * turning the rescan interval down to a second wrote a new file that the already-running
-     * collector never re-read — the setting appeared to do nothing until the game was restarted.
+     * The single shared config instance. The settings screen previously loaded its own copy from
+     * disk, so rescan-interval changes were not seen by the running collector until restart.
      */
     public static ModConfig config() {
         if (sharedConfig == null) sharedConfig = ModConfig.load(configPath());
@@ -140,11 +137,10 @@ public final class FindMyItemsClient implements ClientModInitializer {
     /**
      * Whether the mod does anything right now.
      *
-     * <p>Single-player only, deliberately. The index is a memory of containers <em>you</em> opened,
-     * and on a server that memory goes stale the moment anyone else touches a chest — with no way
-     * to know it has. Retrieval, the re-scan and the crafting planner all read the integrated
-     * server's own state, which a remote server will not hand over. Rather than ship a catalog that
-     * is quietly wrong on servers, the whole thing stands down when there is no local world.
+     * <p>Single-player only. The index remembers containers <em>you</em> opened; on a server it goes
+     * stale when others modify chests, with no way to detect it. Retrieval, rescanning, and the
+     * crafting planner read the integrated server's state, which a remote server does not provide.
+     * The mod therefore stands down when there is no local world.
      */
     public static boolean activeWorld() {
         return Minecraft.getInstance().getSingleplayerServer() != null;

@@ -73,8 +73,8 @@ public final class RetrieveHandler {
 
             if (!matches(player, stack, itemId, componentsJson)) continue;
 
-            // Offer a copy and only shrink the real stack by what landed. Splitting first and
-            // growing the remainder back means briefly leaving a count-0 stack in the container.
+            // Offer a copy and shrink the real stack only by what fit. Splitting first and
+            // growing the remainder back would briefly leave a zero-count stack in the container.
             var toTake = Math.min(remaining, stack.getCount());
             var moved = toTake - give(player, stack.copyWithCount(toTake));
             if (moved > 0) {
@@ -166,10 +166,9 @@ public final class RetrieveHandler {
     /**
      * Moves up to {@code amount} of an item from the player's inventory into the container.
      *
-     * <p>Deliberately narrow: the container must already hold that exact item, components and all.
-     * This is "put the rest of the wood back where the wood lives", not a general stash-anything
-     * button — the mod has no idea where a thing you have never stored belongs, and guessing would
-     * scatter your inventory across the nearest chest.
+     * <p>Deliberately narrow: the container must already hold that exact item, including all
+     * components. This restores an item to its known source rather than acting as a general storage
+     * button; guessing where a never-stored item belongs could scatter it across nearby containers.
      *
      * @return how many items moved; 0 if the container does not stock this item or is full
      */
@@ -241,8 +240,8 @@ public final class RetrieveHandler {
      *
      * <p>Counted rather than taken from {@code add}'s own bookkeeping, which cannot be trusted for
      * this. It reports success when it placed <em>any</em> of the stack, and in creative mode it
-     * zeroes the leftover outright — items are free there, so vanilla drops them on the floor of
-     * the JVM. Believing either would delete the overflow out of the chest every time a nearly-full
+     * zeroes the leftover outright — items are free there, so vanilla discards them. Trusting either
+     * result would delete overflow from the chest whenever a nearly full
      * inventory asks for a big stack.
      */
     private static int give(ServerPlayer player, ItemStack stack) {
@@ -292,11 +291,11 @@ public final class RetrieveHandler {
     }
 
     /**
-     * The container a player right-clicking this block would actually get.
+     * Returns the container the player would actually open.
      *
-     * <p>Not simply the block entity. A double chest's block entity is one half of it, holding 27
-     * of the 54 slots the index recorded, so half the chest was unreachable. An ender chest's block
-     * entity is only the lid animation — the items live on the player.
+     * <p>Not simply the block entity: a double chest's entity holds only half of its 54 slots, so using it
+     * directly would leave half the indexed chest unreachable. An ender chest's block entity is only
+     * the lid animation; its items live on the player.
      *
      * @return null if there is nothing here to take from
      */
@@ -352,10 +351,10 @@ public final class RetrieveHandler {
     }
 
     /**
-     * Same item and same components — a Sharpness sword is not the same kind as a plain one.
+     * Same item ID and components.
      *
-     * <p>The registries have to come from the player: without them the enchantment codec fails and
-     * every enchanted stack answers to the plain stack's key, so one Take empties out every variant.
+     * <p>Registries must come from the player; without them, enchantment codecs fail and distinct variants
+     * collapse to the plain stack's key, so one Take empties every variant.
      */
     private static boolean matches(Player player, ItemStack stack, String itemId, String componentsJson) {
         if (!BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().equals(itemId)) return false;
@@ -397,7 +396,7 @@ public final class RetrieveHandler {
     }
 
     /**
-     * Vanilla's own reach test, plus a block of slack.
+     * Vanilla reach plus one block of slack.
      *
      * <p>The previous check measured feet-to-block-centre, which reads as roughly a block shorter
      * than the reach a player actually has: vanilla measures eye position to the nearest point of
@@ -410,12 +409,12 @@ public final class RetrieveHandler {
     }
 
     /**
-     * Vanilla reach, or a configured radius when that is further.
+     * Vanilla reach, or a configured radius when larger.
      *
      * <p>Never narrower than the arm you already have: the setting raises the ceiling, so a small
      * value cannot take away a chest you could plainly click. Measured eye to block centre, which
      * is a blunter rule than vanilla's box test — at these distances a half-block either way is
-     * not what anyone is asking about.
+     * not relevant at these distances.
      */
     public static boolean inReach(Player player, BlockPos pos, int maxReachBlocks) {
         return Reachability.inRange(player, pos, maxReachBlocks);

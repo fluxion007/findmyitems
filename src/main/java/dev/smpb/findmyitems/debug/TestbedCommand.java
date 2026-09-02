@@ -30,10 +30,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Builds a hand-testable row of containers in front of the player: {@code /fmitest build} to put it
- * up, {@code /fmitest clear} to put the world back. Every container targets a specific thing the
- * mod does — double chests, nested shulkers, items that differ only by component, an out-of-reach
- * chest — so the whole feature set can be exercised by walking the line and opening things.
+ * Builds a row of containers for manual testing: {@code /fmitest build} creates it, and
+ * {@code /fmitest clear} restores the world. Each container exercises a specific feature — double
+ * chests, nested shulkers, component variants, and an out-of-reach chest — so the feature set can
+ * be tested by opening the containers in sequence.
  *
  * <p>Registered only in a development run, so a released jar has no debug commands in it.
  * {@code clear} restores exactly the blocks {@code build} overwrote, and that record lives in
@@ -44,12 +44,12 @@ public final class TestbedCommand {
     private static final int DISTANCE = 3;
     /** Gap between containers, so neighbouring chests never merge into unintended double chests. */
     private static final int SPACING = 2;
-    /** Well past retrieval reach, whatever vanilla's block reach happens to be. */
+    /** Beyond retrieval reach, regardless of vanilla's block reach. */
     private static final int FAR_AWAY = 25;
 
     private static final Map<BlockPos, BlockState> RESTORE = new LinkedHashMap<>();
 
-    /** Where build() put the ender chest, so strand() knows which block to take away. */
+    /** The ender chest placed by {@code build}, which {@code strand} removes. */
     private static BlockPos ender;
 
     private TestbedCommand() {}
@@ -98,10 +98,10 @@ public final class TestbedCommand {
                 "4 Barrel", barrel()));
         placed.add(container(level, at(origin, right, slot++ * SPACING), Blocks.DYED_SHULKER_BOX.purple(), facing,
                 "5 Shulker block", dyes()));
-        // Stocked on the player, not the block: the ender inventory is the one container whose
-        // contents outlive it, so it is the one that can be counted and reachable from nothing.
-        // Paired with the emeralds in #1, this is issue #14's split total. /fmitest strand
-        // takes the block away to leave the remembered half unreachable.
+        // Ender contents belong to the player and persist without a placed block, so they can be
+        // indexed even when no ender chest is available. Together with #1's emeralds, this covers
+        // issue #14's split total. /fmitest strand removes the block to leave the indexed half
+        // unreachable.
         var enderPos = at(origin, right, slot++ * SPACING);
         placed.add(container(level, enderPos, Blocks.ENDER_CHEST, facing, "6 Ender chest", List.of()));
         ender = enderPos;
@@ -125,8 +125,8 @@ public final class TestbedCommand {
     }
 
     /**
-     * Removes the testbed's ender chest, leaving its remembered contents with nothing to reach
-     * them through. The block is already in the restore record, so {@code clear} puts it back.
+     * Removes the testbed's ender chest, leaving its remembered contents unreachable. The block
+     * is already in the restore record, so {@code clear} puts it back.
      */
     private static int strand(CommandSourceStack source) {
         if (ender == null) {
@@ -148,7 +148,7 @@ public final class TestbedCommand {
         var level = source.getLevel();
         var count = RESTORE.size();
 
-        // Reversed: containers were recorded after the floor under them, so they come out first.
+        // Containers were recorded after their floors, so reverse order removes them first.
         var positions = new ArrayList<>(RESTORE.keySet());
         for (int i = positions.size() - 1; i >= 0; i--) {
             var pos = positions.get(i);
@@ -176,7 +176,7 @@ public final class TestbedCommand {
 
     private static String container(ServerLevel level, BlockPos pos, Block block, Direction facing,
                                     String name, List<ItemStack> contents) {
-        // Floor first, then headroom, then the container: clear() walks this back in reverse.
+        // Record the floor, headroom, and container in placement order; clear restores them in reverse.
         var floor = pos.below();
         if (!level.getBlockState(floor).isSolidRender()) {
             record(level, floor);
@@ -232,7 +232,7 @@ public final class TestbedCommand {
                 new ItemStack(Items.EMERALD, 5));
     }
 
-    /** Enough variety to fill both halves — check the catalog reports one container, not two. */
+    /** Fills both halves so the catalog must report one container, not two. */
     private static List<ItemStack> doubleChest() {
         var stacks = new ArrayList<ItemStack>();
         stacks.add(new ItemStack(Items.DIAMOND, 24));
@@ -242,7 +242,7 @@ public final class TestbedCommand {
         stacks.add(new ItemStack(Items.STRING, 30));
         stacks.add(new ItemStack(Items.BONE, 20));
         stacks.add(new ItemStack(Items.LEATHER, 18));
-        // Pad out to the far half so the second chest's slots are exercised too.
+        // Reach the far half so the second chest's slots are exercised too.
         while (stacks.size() < 40) stacks.add(ItemStack.EMPTY);
         stacks.add(new ItemStack(Items.WHEAT, 45));
         stacks.add(new ItemStack(Items.PAPER, 33));
@@ -273,8 +273,8 @@ public final class TestbedCommand {
     }
 
     /**
-     * Shulkers inside a chest, one of them two levels deep. Searching for gold, netherite or
-     * amethyst should find them here, and taking should reach in and pull them out.
+     * Shulkers inside a chest, one nested two levels deep. Searches for gold, netherite, or
+     * amethyst should find these items, and retrieval should reach in and remove them.
      */
     private static List<ItemStack> nested() {
         var inner = shulker(Items.DYED_SHULKER_BOX.purple(),
@@ -335,9 +335,9 @@ public final class TestbedCommand {
     }
 
     /**
-     * Stacking edge cases. Beds and dragon eggs never stack; buckets stack to 16 empty but not
-     * at all once filled; potions and armour sit in between. Counts, take amounts and the
-     * "put back" button all have to cope with maximum stack sizes that are not 64.
+     * Stacking edge cases. Beds and dragon eggs never stack; empty buckets stack to 16, while
+     * filled buckets do not stack; potions and armor fall between these cases. Counts, take
+     * amounts, and the "put back" button must handle maximum stack sizes other than 64.
      */
     private static List<ItemStack> stacking() {
         return List.of(
@@ -358,8 +358,8 @@ public final class TestbedCommand {
     }
 
     /**
-     * Partial coverage for the crafting view: enough logs and cobble to satisfy some branches
-     * of a stone pickaxe or a chest, not enough for others.
+     * Partial crafting coverage: enough logs and cobblestone for some stone-pickaxe or chest
+     * branches, but not enough for all of them.
      */
     private static List<ItemStack> craftPartials() {
         return List.of(
@@ -370,7 +370,7 @@ public final class TestbedCommand {
                 new ItemStack(Items.OAK_PLANKS, 7));
     }
 
-    /** More than a stack of one item, so the amount box can be pushed past 64. */
+    /** More than one stack, so the amount field can be set above 64. */
     private static List<ItemStack> bulk() {
         var stacks = new ArrayList<ItemStack>();
         for (int i = 0; i < 8; i++) {

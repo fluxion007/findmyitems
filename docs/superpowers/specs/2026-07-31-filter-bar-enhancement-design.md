@@ -2,7 +2,7 @@
 
 ## Goal
 
-Give players independent control over the injected filter bar in their survival inventory and in other container screens, while making the filter search the complete item tooltip so enchantments and their levels are discoverable even when items share the same display name.
+Give players independent control over the injected filter bar in their survival inventory and other container screens. Make the filter search the complete item tooltip so enchantments and their levels remain discoverable when items share the same display name.
 
 ## Behavior
 
@@ -25,7 +25,7 @@ The filter remains a visual dimming filter and does not move or modify items. A 
 - item registry ID/path;
 - every line of the rendered item tooltip.
 
-Tooltip matching includes enchantment names and levels, including the user-visible Roman numeral form and Arabic digit form where the tooltip provides them. It also covers other tooltip attributes without requiring separate component-specific matching rules.
+Tooltip matching includes enchantment names and levels, including the user-visible Roman numeral and Arabic-digit forms where the tooltip provides them. It also covers other tooltip attributes without requiring separate component-specific matching rules.
 
 The tooltip is generated with the client player's current context and registry access. Empty stacks are ignored as before. Existing single-player-only behavior remains unchanged.
 

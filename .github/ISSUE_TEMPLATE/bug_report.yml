@@ -1,16 +1,16 @@
 name: Bug report
-description: Report behaviour that does not match what the documentation describes
+description: Report behavior that differs from the documentation
 labels: ["bug", "needs triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        The mod is active in single-player worlds only. It disables itself on multiplayer servers by design, so that is not a bug. See the README section "Single-player only".
+        The mod works only in single-player worlds. It intentionally disables itself on multiplayer servers, so that is not a bug. See the README section "Single-player only".
   - type: textarea
     id: what-happened
     attributes:
       label: What happened
-      description: What the mod did, and what you expected instead.
+      description: Describe what the mod did and what you expected.
       placeholder: The catalog listed 64 iron ingots in a barrel, but retrieving them had no effect.
     validations:
       required: true
@@ -18,7 +18,7 @@ body:
     id: steps
     attributes:
       label: Steps to reproduce
-      description: Steps starting from a new world where possible. If the problem occurs in only one world, describe what is different about it.
+      description: Start from a new world where possible. If the problem occurs in only one world, describe what is different.
       placeholder: |
         1. Place a double chest and put 40 diamonds in its right half
         2. Open and close it
@@ -29,7 +29,7 @@ body:
   - type: input
     id: mod-version
     attributes:
-      label: findmyitems version
+      label: Find My Items version
       placeholder: "VERSION"
     validations:
       required: true
@@ -44,12 +44,12 @@ body:
     id: other-mods
     attributes:
       label: Other installed mods
-      description: The full list if it is short. Otherwise, list rendering and inventory mods, which are the most common source of interaction with this mod.
+      description: List all mods if the list is short. Otherwise, list rendering and inventory mods, which most often interact with this mod.
   - type: textarea
     id: logs
     attributes:
       label: Log output
-      description: Relevant lines from logs/latest.log, including any stack trace. This field is formatted as code automatically.
+      description: Include relevant lines from logs/latest.log, including any stack trace. This field is automatically formatted as code.
       render: shell
   - type: checkboxes
     id: checks

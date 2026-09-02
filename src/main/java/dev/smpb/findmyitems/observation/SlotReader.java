@@ -23,7 +23,7 @@ import java.util.List;
 public final class SlotReader {
     /** Nested slots get indices from here up, so they never collide with real ones. */
     private static final int NESTED_SLOT_BASE = 10_000;
-    /** A shulker in a shulker in a bundle is already absurd; stop there. */
+    /** A shulker nested in another shulker and a bundle is excessive; stop there. */
     private static final int MAX_NESTING = 4;
 
     private SlotReader() {}
@@ -108,7 +108,7 @@ public final class SlotReader {
         return new SlotSnapshot(slotIndex, new StackSnapshot(key, count, displayName, tooltip, provenance));
     }
 
-    /** The registries a stack's components must be encoded against, or null if there is no world yet. */
+    /** Returns the registries required to encode a stack's components, or null without a world. */
     public static HolderLookup.Provider registriesOf(Player player) {
         return player == null || player.level() == null ? null : player.registryAccess();
     }
@@ -121,10 +121,9 @@ public final class SlotReader {
      * anything else data-driven hold registry entries, and their codecs cannot encode without a
      * {@link HolderLookup.Provider} — with bare {@code JsonOps} they throw, every time.
      *
-     * <p>Which is why the failure path may not return {@code "{}"}, however tempting: {@code "{}"} is
-     * the key a plain, component-less stack already has. Collapsing onto it silently declares a
-     * Sharpness V sword to be the same object as an unenchanted one, and retrieval — which re-derives
-     * this key server-side to decide what to pull out of a chest — then takes every variant at once.
+     * <p>Therefore, the failure path must not return {@code "{}"}: that is the key for a plain,
+     * component-less stack. Using it would silently identify a Sharpness V sword as an unenchanted
+     * one, causing server-side retrieval to remove every variant from a chest.
      * A key that cannot be built is degraded to something unique-per-patch instead. It will not decode
      * back into an icon, and that is a far smaller lie than merging two different items.
      */
@@ -141,7 +140,7 @@ public final class SlotReader {
         }
     }
 
-    /** Marks a components key that failed to encode. Not valid JSON, deliberately — it must never parse. */
+    /** Prefix for component keys that failed to encode; deliberately invalid JSON. */
     private static final String UNENCODABLE_PREFIX = "!";
 
     static List<String> getTooltipLines(ItemStack stack,

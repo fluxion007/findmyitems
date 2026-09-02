@@ -9,4 +9,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'findmyitems'
+rootProject.name = 'find-my-items'

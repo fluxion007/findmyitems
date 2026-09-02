@@ -29,7 +29,7 @@ import java.util.function.BooleanSupplier;
  * items landing in the inventory show up immediately instead of desyncing until the next reload.
  */
 public final class GhostOpen {
-    /** A chest lid swings open over roughly this long; closing sooner looks like a twitch. */
+    /** Hold the chest open for about 10 ticks so its lid animation is visible. */
     private static final int HOLD_TICKS = 10;
     /** No open packet came back — the server refused the interaction. Stop waiting and act anyway. */
     private static final int OPEN_TIMEOUT_TICKS = 20;

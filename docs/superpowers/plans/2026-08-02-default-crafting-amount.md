@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make a newly opened catalog request one item by default and publish the change as `0.1.3` to GitHub and Modrinth.
+**Goal:** Make a newly opened catalog request default to one item and publish the change as `0.1.3` to GitHub and Modrinth.
 
 **Architecture:** Keep the amount state local to `CatalogScreen`; change only its initial value from `64` to `1`. Extend the existing client game test to inspect the amount edit box after opening the real catalog, then update release metadata and use the repository's existing Gradle publishing workflow.
 
@@ -59,7 +59,7 @@ The search box is the first `EditBox` and the amount box is the second, matching
 
 Run: `./gradlew runClientGameTest`
 
-Expected: the client game test reaches the new assertion and fails because the current default is `64`. Do not claim the change works from this command; the client test opens a real window and may require the user's display session.
+Expected: the client game test reaches the new assertion and fails because the current default is `64`. Do not claim that the change works based on this command; the client test opens a real window and may require the user's display session.
 
 - [ ] **Step 3: Change the minimal implementation**
 

@@ -1,22 +1,22 @@
 ## What this changes
 
-<!-- One paragraph describing the behaviour that is different after this change. -->
+<!-- In one paragraph, describe the behavior that changes. -->
 
 ## Why
 
-<!-- The problem being solved, or the issue this closes, for example "Closes #12". -->
+<!-- Describe the problem being solved or the issue being closed, such as "Closes #12". -->
 
 ## Checks run
 
-- [ ] `./gradlew build` — compile and JUnit tests
+- [ ] `./gradlew build` — compilation and JUnit tests
 - [ ] `./gradlew runGameTest` — headless server tests
-- [ ] `./gradlew runClientGameTest` — required only if this change affects input, screens, or rendering
+- [ ] `./gradlew runClientGameTest` — required only when this change affects input, screens, or rendering
 - [ ] Verified in a single-player world
 
-<!-- Delete any line that does not apply rather than leaving it unchecked. -->
+<!-- Delete lines that do not apply; do not leave them unchecked. -->
 
 ## Tests
 
-<!-- Which test covers this change, and what it would catch if the change regressed.
-     "No test" is acceptable for a rename or a documentation change. It is not
-     acceptable for code that moves items. -->
+<!-- Name the test covering this change and what regression it would catch.
+     "No test" is acceptable for a rename or documentation change, but not for
+     code that moves items. -->

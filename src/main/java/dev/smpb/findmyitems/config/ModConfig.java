@@ -11,12 +11,12 @@ public final class ModConfig {
 
     public int rescanIntervalSeconds = 5;
     /**
-     * Rescan radius in chunks, matching the unit view and simulation distance already use — a
-     * player can compare "8 chunks" against their render distance without doing arithmetic.
-     * 0 means unlimited. The default is the 64 blocks this used to be.
+     * Rescan radius in chunks, matching the units used by the view and simulation distance. A
+     * player can compare "8 chunks" with the render distance without doing arithmetic.
+     * 0 means unlimited. The default is 64 blocks.
      */
     public int searchDistanceChunks = 4;
-    /** Whether the catalog opens in grid layout. A reading preference, so it outlives the screen. */
+    /** Whether the catalog opens in grid layout; this preference persists beyond the screen. */
     public boolean gridLayout = false;
     public boolean filterInventory = true;
     public boolean filterContainers = true;
@@ -29,11 +29,11 @@ public final class ModConfig {
      */
     public boolean indexEnderInventory = true;
     /**
-     * How far away, in blocks, a container may be and still be taken from. 0 keeps your own reach.
+     * Maximum container distance, in blocks, for retrieval. 0 preserves normal reach.
      *
-     * <p>Off by default because it is the one setting that changes what the mod lets you do rather
-     * than what it knows. The index has always remembered chests across a whole base; this decides
-     * whether the catalog will also empty one from the other side of it.
+     * <p>Off by default because it changes what the mod lets you do rather than what it knows. The
+     * index remembers chests across a whole base; this decides whether the catalog may also empty
+     * one from the other side of it.
      */
     public int retrieveDistanceBlocks = 0;
 

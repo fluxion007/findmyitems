@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Deliver one verified release candidate that makes crafting search, recipe planning, catalog rendering, vanilla reachability, and gather/craft automation correct and safe.
+**Goal:** Deliver a verified release candidate that makes crafting search, recipe planning, catalog rendering, vanilla reachability, and gather/craft automation correct and safe.
 
 **Architecture:** Preserve the existing index, persistence, single-player boundary, and conservation-safe server retrieval. Extract pure search, recipe-graph/planning, inventory simulation, display-layout, and execution-state services, then connect them to `CatalogScreen` through generation-tagged immutable snapshots.
 
@@ -102,7 +102,7 @@ Run:
 git switch -c feature/crafting-planner-rework
 ```
 
-- [ ] **Step 3: Run the baseline serially.**
+- [ ] **Step 3: Run the baseline commands serially.**
 
 Run each command only after the prior command exits, so `runGameTest` does not share its world lock with another Gradle process:
 
@@ -113,7 +113,7 @@ Run each command only after the prior command exits, so `runGameTest` does not s
 ./gradlew runGameTest
 ```
 
-Expected: JUnit, check, build, and all existing headless GameTests pass. Record any existing warnings separately from failures.
+Expected: JUnit, check, build, and all existing headless GameTests pass. Record existing warnings separately from failures.
 
 - [ ] **Step 4: Commit no code.**
 
@@ -209,7 +209,7 @@ git commit -m "feat: add ranked root-only search"
 - `CraftingPlan` contains root node, remaining inventory, consumed/surplus deltas, missing quantities, and `PlanScore`.
 - `DisplayPlan.flatten(CraftingPlan)` returns rows with explicit `rootId`, `nodeId`, `parentId`, and `depth`.
 
-- [ ] **Step 1: Write failing pure planner tests.**
+- [ ] **Step 1: Write failing pure-planner tests.**
 
 Cover these exact assertions:
 
@@ -394,7 +394,7 @@ Add chest and crafting-table fixtures for nearby unobstructed, nearby behind sto
 
 Expected: new obstruction and wrong-block tests fail against the current radius/center-point logic.
 
-- [ ] **Step 3: Implement target facts and server validation.**
+- [ ] **Step 3: Implement target facts and server-side validation.**
 
 Check same dimension, `world.isLoaded`, expected block state, interaction range, and the block entity/handler that vanilla would open. Keep configured extended reach as an upper bound but require a valid target and loaded chunk.
 

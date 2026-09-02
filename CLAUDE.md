@@ -1,4 +1,4 @@
-# findmyitems — instructions for Claude
+# Find My Items (`findmyitems`) — instructions for Claude
 
 ## Commits
 

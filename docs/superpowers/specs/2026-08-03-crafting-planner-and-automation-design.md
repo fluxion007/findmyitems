@@ -2,15 +2,15 @@
 
 ## Goal
 
-Rework the crafting search, planning, display, reachability, and execution paths into one
+Rework the crafting search, planning, display, reachability, and execution paths into a single
 verified release candidate. Preserve the existing single-player boundary, registry-backed item
 identity, indexed-container model, and item-conservation guarantees.
 
 The release includes correct root-only crafting search, word-aware fuzzy matching, lazy and
-virtualized crafting output browsing, cycle-safe recipe planning, legitimate vanilla reachability,
-locate quantity correctness, gather-only behavior, gather-and-craft automation, safe cancellation,
-inventory simulation, stale-index recovery, automated tests, client tests, manual verification,
-and local release preflight. Remote publication is explicitly out of scope until separately
+virtualized crafting-output browsing, cycle-safe recipe planning, legitimate vanilla reachability,
+correct locate quantities, gather-only behavior, gather-and-craft automation, safe cancellation,
+inventory simulation, stale-index recovery, automated and client tests, manual verification, and
+local release preflight. Remote publication is explicitly out of scope until separately
 approved by the user.
 
 ## Constraints and Decisions
@@ -36,7 +36,7 @@ screen class.
 Build an immutable search snapshot from indexed stack observations. It owns normalized translated
 names, item identifiers, tooltip text, component fingerprints, token indexes, and deterministic
 root-result ordering. It is rebuilt after recipe or language changes and refreshed when the index
-revision changes. The catalog and ordinary container filter use the same document and matcher rules.
+revision changes. The catalog and ordinary container filter use the same document and matching rules.
 
 ### Recipe catalog
 
@@ -119,8 +119,8 @@ visible row.
 Selection and hover are stable output identities, not list indexes. Search changes clear stale hover
 and clear a selected plan when its root disappears. Index-only refreshes preserve scroll when query,
 view, and layout identity are unchanged. The title is `Find My Items`, and status text consistently
-distinguishes in-inventory, known storage, reachable, unavailable, missing, gather-only, and gather-
-and-craft states.
+distinguishes in-inventory, known storage, reachable, unavailable, missing, gather-only, and
+gather-and-craft states.
 
 A selected top-level crafting result owns the single primary action. Recursive child rows do not each
 offer full-plan execution. Locate is displayed only when indexed quantity is positive and may show

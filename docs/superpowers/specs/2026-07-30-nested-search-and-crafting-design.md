@@ -8,9 +8,9 @@ Improve Find My Items so nested shulker results are actionable, item searches un
 
 ### Nested shulkers
 
-The index continues to expose items inside shulkers as searchable results. Each nested result also records the exact path from the accessed container to the outermost shulker that contains it. The path must distinguish slots in double chests and ender-chest inventories and must remain bounded by the existing nesting limit.
+The index continues to expose items inside shulkers as searchable results. Each nested result also records the exact path from the accessed container to the outermost shulker containing it. The path must distinguish slots in double chests and ender-chest inventories and must remain bounded by the existing nesting limit.
 
-When the selected result is inside a shulker, Take moves the entire outermost shulker box to the player, preserving all contents. It is one box per action; the requested item amount does not partially extract the nested item or imply multiple boxes. Direct items retain the existing count-based behavior. Every operation must conserve items when the player inventory is full, including creative mode.
+When the selected result is inside a shulker, Take moves the entire outermost shulker box to the player, preserving all contents. Each action moves one box; the requested item amount neither partially extracts the nested item nor implies multiple boxes. Direct items retain the existing count-based behavior. Every operation must conserve items when the player inventory is full, including creative mode.
 
 ### Search
 
@@ -44,10 +44,10 @@ Keep retrieval server-authoritative. A nested Take request validates reach, sour
 
 Add unit tests for token matching, enchantment names and levels, multi-token queries, and relevance ordering. Add game tests for whole-shulker retrieval from ordinary chests and ender chests, multiple matching shulkers, nested-depth limits, full inventories, creative mode, and component-specific variants.
 
-Add client game coverage for scroll preservation and shared search behavior where the existing client test harness permits it. Add a reusable source data pack and instructions that create a chest-room fixture containing direct items, enchanted books, differently enchanted swords, multiple nested shulkers, ender-chest contents, and inventory-capacity edge cases.
+Add client-game coverage for scroll preservation and shared search behavior where the existing client test harness permits it. Add a reusable source data pack and instructions that create a chest-room fixture containing direct items, enchanted books, differently enchanted swords, multiple nested shulkers, ender-chest contents, and inventory-capacity edge cases.
 
 Verification consists of `./gradlew build`, headless `./gradlew runGameTest`, client game tests after user approval to open a client window, and a manual fixture pass in a playable world.
 
-## Scope and cleanup
+## Scope and Cleanup
 
 Simplify redundant comments and code only in files touched by this feature. Preserve comments documenting non-obvious conservation guarantees, registry-backed component identity, and the intentional single-player boundary. Do not add multiplayer behavior or unrelated refactors.

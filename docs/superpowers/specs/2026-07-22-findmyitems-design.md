@@ -10,7 +10,7 @@
 
 ## 1. Product Summary
 
-`findmyitems` is a client-side Fabric mod that remembers the contents of storage containers the player has legitimately opened. A player can search those memories from one catalog, see which source containers are currently reachable, and retrieve items from a reachable container through Minecraft's normal container interaction and slot-click behavior.
+`findmyitems` is a client-side Fabric mod that remembers the contents of storage containers the player has legitimately opened. A player can search those memories in a single catalog, see which source containers are currently reachable, and retrieve items from a reachable container through Minecraft's normal container interaction and slot-click behavior.
 
 The supported product is centered on single-player survival worlds. Multiplayer may work on a best-effort basis because the same vanilla interactions are used, but multiplayer is undocumented, untested, and not part of the release guarantee. The mod never scans unopened containers, reads server-only state, creates items, bypasses distance checks, or transfers items across dimensions.
 
@@ -88,7 +88,7 @@ Knowledge enters the index only when a supported container screen has actually o
 
 Opening a previously remembered container replaces its snapshot; it does not merge old and new counts. If the client observes that a remembered, loaded position is no longer the expected container, the source is marked missing and removed after the observation is confirmed on the client thread. Unloaded positions remain stale memories rather than being treated as missing.
 
-The player-inventory slots displayed below a container are never recorded as part of that container.
+Player-inventory slots displayed below a container are never recorded as part of that container.
 
 ## 7. Persistence and World Identity
 
@@ -114,7 +114,7 @@ Search is case-insensitive and locale-stable. Whitespace-separated query terms u
 
 Search results update while typing. An empty query shows every remembered item. Results aggregate equal stack identities across sources while retaining each individual source and count.
 
-## 9. In-findmyitems
+## 9. In-Container Search
 
 Every supported open-container screen receives a search field above the container layout. `Ctrl+F` focuses it. `Escape` clears a non-empty query first; a subsequent `Escape` follows normal screen-closing behavior.
 
@@ -131,7 +131,7 @@ The screen uses a split layout:
 - The left side lists matching aggregate item stacks with icon, name, total remembered count, and exact-count selection.
 - The right side lists source containers for the selected stack with dimension, coordinates, remembered count, container type, reachability state, and last-observed time.
 
-Sources sort by predicted reachable state, then distance, then most recently observed. Fully colored rows are predicted reachable. Dimmed rows carry a reason such as `different dimension`, `chunk not loaded`, `out of range`, `container missing`, `obstructed`, or `not currently verified`. A stale source remains searchable and never presents its old snapshot as live truth.
+Sources sort by predicted reachable state, then distance, then most recently observed. Fully colored rows are predicted reachable. Dimmed rows carry a reason such as `different dimension`, `chunk not loaded`, `out of range`, `container missing`, `obstructed`, or `not currently verified`. A stale source remains searchable but never presents its old snapshot as live truth.
 
 Selecting an unreachable source shows its dimension and exact coordinates for manual navigation. The MVP does not render a waypoint or send interaction or inventory packets for that source.
 

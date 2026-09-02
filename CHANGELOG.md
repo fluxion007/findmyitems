@@ -1,6 +1,6 @@
 # Changelog
 
-Notable changes to `findmyitems`. Versions follow the `MAJOR.MINOR.PATCH` form, and each released version has a matching `vVERSION` Git tag.
+Notable changes to Find My Items (`findmyitems`). Versions follow the `MAJOR.MINOR.PATCH` form, and each released version has a matching `vVERSION` Git tag.
 
 ## Unreleased
 
@@ -103,7 +103,7 @@ First release. Single-player worlds only; the mod disables itself on multiplayer
 
 ### Known issues
 
-Tracked in the [issue tracker](https://github.com/SonicKarnati/findmyitems/issues):
+Tracked in the [issue tracker](https://github.com/simply-sunny/find-my-items/issues):
 
 - The grid layout is not retained when switching views or reopening the catalog.
 - The retrieval tooltip shows the requested amount rather than the amount that will be moved when fewer are available.

@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Question about how the mod works
-    url: https://github.com/SonicKarnati/findmyitems/discussions
+    url: https://github.com/simply-sunny/find-my-items/discussions
     about: For questions about existing behaviour, use Discussions rather than the issue tracker.
