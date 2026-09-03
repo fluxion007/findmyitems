@@ -2,7 +2,7 @@
 
 Find My Items (`findmyitems`) is a client-side Fabric mod for Minecraft Java Edition. It indexes containers you open, lets you search them from one screen, and can retrieve or deposit items without opening each container manually.
 
-findmyitems downloads: 149
+findmyitems downloads: 154
 
 ## Features
 
