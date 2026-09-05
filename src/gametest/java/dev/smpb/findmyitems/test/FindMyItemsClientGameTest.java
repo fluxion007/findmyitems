@@ -1,6 +1,8 @@
 package dev.smpb.findmyitems.test;
 
 import dev.smpb.findmyitems.FindMyItemsClient;
+import dev.smpb.findmyitems.config.ConfigScreen;
+import dev.smpb.findmyitems.config.ConfigScreenTestAccess;
 import dev.smpb.findmyitems.gui.CatalogScreen;
 import dev.smpb.findmyitems.gui.CatalogScreenTestAccess;
 import dev.smpb.findmyitems.gui.ChestHighlighter;
@@ -53,6 +55,7 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
     private static final BlockPos CHEST = new BlockPos(0, 100, 2);
     private static final BlockPos ENDER = new BlockPos(2, 100, 2);
     private static final BlockPos FURNACE = new BlockPos(-2, 100, 2);
+    private static final BlockPos CRAFTING_TABLE = new BlockPos(0, 100, 3);
 
     private static final int DIAMONDS = 32;
     /** Sits inside a shulker box that sits inside the chest. */
@@ -63,6 +66,7 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        var suiteStarted = System.nanoTime();
         try (TestSingleplayerContext singleplayer = context.worldBuilder().create()) {
             singleplayer.getClientLevel().waitForChunksRender();
 
@@ -86,9 +90,10 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
             assertFilterBarVisible(context, false);
 
             context.setScreen(() -> null);
-            context.waitTicks(5);
+            waitForCondition(context, "furnace screen closed", 20, mc -> mc.gui.screen() == null);
 
             enderChestTotalsStayHonest(context, server);
+            logPhase(suiteStarted, "ender conservation");
 
             openCatalog(context);
             assertTickDrivenDiamondPickaxe(context, server);
@@ -108,7 +113,8 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
 
             // The emerald is the interesting cell: its stock is remembered with no chest to open.
             context.getInput().typeChars("emer");
-            context.waitTicks(3);
+            waitForCondition(context, "typed search \"emer\"", 20,
+                    mc -> mc.gui.screen() instanceof CatalogScreen && catalogSearchText(mc).equals("emer"));
             hoverFirstGridCell(context);
             context.takeScreenshot("items-grid-detail");
             clearSearch(context, "emer".length());
@@ -122,7 +128,7 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
             click(context, "screen.findmyitems.layout.list");
 
             // Ctrl+3 is the shortcut for the third view; the tab buttons are already covered above.
-            switchViewByShortcut(context, GLFW.GLFW_KEY_3);
+            switchViewByShortcut(context, GLFW.GLFW_KEY_3, "CRAFTING");
             context.takeScreenshot("crafting-index");
             assertCraftingIndexIsPopulated(context);
             assertCraftingBrowseIsLazyAndRootBased(context);
@@ -136,12 +142,15 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
             assertGenerationInvalidation(context);
 
             context.getInput().typeChars("not-a-real-item");
-            context.waitTicks(5);
+            waitForCondition(context, "typed search \"not-a-real-item\"", 20,
+                    mc -> mc.gui.screen() instanceof CatalogScreen
+                            && catalogSearchText(mc).equals("not-a-real-item"));
             assertSelectionClearsAfterFilter(context);
             context.takeScreenshot("crafting-tree");
 
-            switchViewByShortcut(context, GLFW.GLFW_KEY_1);
+            switchViewByShortcut(context, GLFW.GLFW_KEY_1, "ITEMS");
             assertShowingItems(context);
+            logPhase(suiteStarted, "catalog browse");
 
             context.setScreen(() -> null);
             assertGhostOpenRefusesBlockedChest(context, server);
@@ -160,14 +169,45 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
             assertExecutorTimesOutWhenMenuCallbackIsDelayed(context, server);
             assertSourceSnapshotTemplateIsDefensive(context);
             assertCreativeCraftedOutputOverflowIsRetained(context, server);
+            assertSettingsScreenPreservesAndPersists(context);
+            assertLayoutTogglePersistsAndResizeKeepsQuery(context, server);
+            assertExecutorFailsWithoutTable(context, server);
+            logPhase(suiteStarted, "suite complete");
         }
     }
 
-    private static void switchViewByShortcut(ClientGameTestContext context, int digit) {
+    private static void logPhase(long suiteStarted, String phase) {
+        System.out.println("[FindMyItemsClientGameTest] " + phase + " +"
+                + (System.nanoTime() - suiteStarted) / 1_000_000 + "ms");
+    }
+
+    /**
+     * A bounded condition check: returns as soon as the state holds, fails loudly on timeout.
+     * Replaces blind tick counts everywhere the wait serves a real postcondition; the explicit
+     * re-check after the wait covers either timeout semantic of the underlying call.
+     */
+    private static void waitForCondition(ClientGameTestContext context, String what, int timeoutTicks,
+            java.util.function.Predicate<net.minecraft.client.Minecraft> condition) {
+        try {
+            context.waitFor(condition, timeoutTicks);
+        } catch (RuntimeException timeout) {
+            throw new AssertionError("timed out after " + timeoutTicks + " ticks waiting for " + what,
+                    timeout);
+        }
+        var settled = context.computeOnClient(condition::test);
+        if (!settled) {
+            throw new AssertionError("wait finished without reaching: " + what);
+        }
+    }
+
+    private static void switchViewByShortcut(ClientGameTestContext context, int digit, String expectedView) {
         context.getInput().holdControl();
         context.getInput().pressKey(digit);
         context.getInput().releaseControl();
-        context.waitTicks(5);
+        // The key event lands on a later tick; poll for the view instead of sleeping blindly.
+        waitForCondition(context, "view " + expectedView, 20,
+                mc -> mc.gui.screen() instanceof CatalogScreen screen
+                        && CatalogScreenTestAccess.viewName(screen).equals(expectedView));
     }
 
     private static void assertExecutorBusyGuard(ClientGameTestContext context) {
@@ -260,7 +300,8 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
             mc.player.setNoGravity(true);
             mc.player.setPos(CHEST.getX() + 40.5, CHEST.getY() + 1, CHEST.getZ() + 0.5);
         });
-        context.waitTicks(1);
+        waitForCondition(context, "cancellation after moving away", 20,
+                mc -> FindMyItemsClient.executor().status() == ExecutionStatus.CANCELLED);
         assertCancelled(context, "OUT_OF_REACH");
         context.runOnClient(mc -> {
             mc.player.setNoGravity(false);
@@ -289,12 +330,12 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
         openCatalog(context);
         context.computeOnClient(mc -> startIdleExecutor(CraftingExecutor.Mode.GATHER_ONLY).state());
         context.getInput().typeChars("diamond");
-        context.waitTicks(1);
+        waitForCondition(context, "cancellation after typing", 20,
+                mc -> FindMyItemsClient.executor().status() == ExecutionStatus.CANCELLED);
         assertCancelled(context, "QUERY_CHANGED");
 
         clearSearch(context, "diamond".length());
-        switchViewByShortcut(context, GLFW.GLFW_KEY_3);
-        context.waitTicks(5);
+        switchViewByShortcut(context, GLFW.GLFW_KEY_3, "CRAFTING");
         var pending = context.computeOnClient(mc -> startPendingExecutor(CraftingExecutor.Mode.GATHER_ONLY).status());
         if (pending != ExecutionStatus.CALCULATING) {
             throw new AssertionError("selection cancellation fixture did not become active: " + pending);
@@ -363,13 +404,23 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
             var chest = (ChestBlockEntity) s.overworld().getBlockEntity(CHEST);
             chest.setItem(1, new ItemStack(Items.OAK_LOG, 12));
         });
-        context.waitTicks(80);
+        // The 1-second rescan picks the restock up; poll for it instead of sleeping through four.
+        waitForCondition(context, "rescan noticing the oak logs", 120,
+                mc -> FindMyItemsClient.index().search("oak log").stream()
+                        .mapToInt(r -> r.totalCount()).sum() >= 12);
         openCatalog(context);
-        switchViewByShortcut(context, GLFW.GLFW_KEY_3);
+        switchViewByShortcut(context, GLFW.GLFW_KEY_3, "CRAFTING");
         context.getInput().typeChars("diamond_pickaxe");
-        context.waitTicks(3);
+        waitForCondition(context, "typed search \"diamond_pickaxe\"", 20,
+                mc -> mc.gui.screen() instanceof CatalogScreen
+                        && catalogSearchText(mc).equals("diamond_pickaxe"));
         clickFirstCraftingRow(context);
-        context.waitTicks(30);
+        waitForCondition(context, "applied pickaxe plan", 80,
+                mc -> mc.gui.screen() instanceof CatalogScreen screen
+                        && CatalogScreenTestAccess.selectionState(screen).selected()
+                        && CatalogScreenTestAccess.selectionState(screen).generations()
+                                .appliedPlanGeneration() == CatalogScreenTestAccess.selectionState(screen)
+                                        .generations().planGeneration());
         var before = executorAccounting(context, server);
         context.clickScreenButton("screen.findmyitems.craft.gather_materials");
         var actionStatus = context.computeOnClient(mc -> CatalogScreenTestAccess.statusText(requireCatalog(mc)));
@@ -874,7 +925,13 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
             throw new AssertionError("selecting a crafting output must retain its stable identity");
         }
 
-        context.waitTicks(20);
+        // Planning runs off-thread; poll for the applied plan instead of sleeping through it.
+        waitForCondition(context, "applied crafting plan", 80,
+                mc -> mc.gui.screen() instanceof CatalogScreen screen
+                        && CatalogScreenTestAccess.selectionState(screen).generations()
+                                .appliedPlanGeneration() == CatalogScreenTestAccess.selectionState(screen)
+                                        .generations().planGeneration()
+                        && CatalogScreenTestAccess.selectionState(screen).selected());
         state = context.computeOnClient(mc -> CatalogScreenTestAccess.selectionState(requireCatalog(mc)));
         if (state.generations().appliedPlanGeneration() != state.generations().planGeneration()) {
             throw new AssertionError("selected output should apply its current plan before invalidation");
@@ -917,17 +974,17 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
             throw new AssertionError("selecting a new output must hide actions until its plan arrives");
         }
 
-        switchViewByShortcut(context, GLFW.GLFW_KEY_1);
+        switchViewByShortcut(context, GLFW.GLFW_KEY_1, "ITEMS");
         var beforeView = context.computeOnClient(mc -> CatalogScreenTestAccess.selectionState(requireCatalog(mc))
                 .generations());
-        switchViewByShortcut(context, GLFW.GLFW_KEY_3);
+        switchViewByShortcut(context, GLFW.GLFW_KEY_3, "CRAFTING");
         var afterView = context.computeOnClient(mc -> CatalogScreenTestAccess.selectionState(requireCatalog(mc))
                 .generations());
         if (afterView.searchGeneration() <= beforeView.searchGeneration()) {
             throw new AssertionError("view changes must advance the query generation");
         }
 
-        switchViewByShortcut(context, GLFW.GLFW_KEY_1);
+        switchViewByShortcut(context, GLFW.GLFW_KEY_1, "ITEMS");
         var beforeLayout = context.computeOnClient(mc -> CatalogScreenTestAccess.selectionState(requireCatalog(mc))
                 .generations());
         click(context, "screen.findmyitems.layout.grid");
@@ -938,11 +995,15 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
             throw new AssertionError("layout changes must advance the query generation");
         }
 
-        switchViewByShortcut(context, GLFW.GLFW_KEY_3);
+        switchViewByShortcut(context, GLFW.GLFW_KEY_3, "CRAFTING");
         var beforeRecipe = context.computeOnClient(mc -> CatalogScreenTestAccess.selectionState(requireCatalog(mc))
                 .generations());
         context.runOnClient(mc -> CatalogScreen.invalidateRecipeCache());
-        context.waitTicks(2);
+        // The catalog notices the new recipe generation on its next tick; poll for it.
+        waitForCondition(context, "recipe reload advancing the query generation", 40,
+                mc -> mc.gui.screen() instanceof CatalogScreen screen
+                        && CatalogScreenTestAccess.selectionState(screen).generations()
+                                .searchGeneration() > beforeRecipe.searchGeneration());
         var afterRecipe = context.computeOnClient(mc -> CatalogScreenTestAccess.selectionState(requireCatalog(mc))
                 .generations());
         if (afterRecipe.searchGeneration() <= beforeRecipe.searchGeneration()) {
@@ -951,7 +1012,10 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
 
         var beforeIndex = afterRecipe;
         context.runOnClient(mc -> FindMyItemsClient.index().replace(FindMyItemsClient.index().snapshot()));
-        context.waitTicks(2);
+        waitForCondition(context, "index revision advancing the query generation", 40,
+                mc -> mc.gui.screen() instanceof CatalogScreen screen
+                        && CatalogScreenTestAccess.selectionState(screen).generations()
+                                .searchGeneration() > beforeIndex.searchGeneration());
         var afterIndex = context.computeOnClient(mc -> CatalogScreenTestAccess.selectionState(requireCatalog(mc))
                 .generations());
         if (afterIndex.searchGeneration() <= beforeIndex.searchGeneration()) {
@@ -959,11 +1023,368 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
         }
     }
 
+    /**
+     * Real geometry: the screen must fill exactly the window's scaled dims. A logical-only
+     * resize with an unchanged framebuffer fails this outright, which is the point.
+     */
+    private static void assertScreenMatchesWindow(ClientGameTestContext context) {
+        var actual = context.computeOnClient(mc -> {
+            var screen = requireCatalog(mc);
+            return screen.width + "x" + screen.height + " vs window "
+                    + mc.getWindow().getGuiScaledWidth() + "x" + mc.getWindow().getGuiScaledHeight();
+        });
+        var dims = context.computeOnClient(mc -> mc.getWindow().getGuiScaledWidth() + "x"
+                + mc.getWindow().getGuiScaledHeight());
+        var screenDims = actual.substring(0, actual.indexOf(" vs window"));
+        if (!screenDims.equals(dims)) {
+            throw new AssertionError("catalog must fill the rescaled window, screen " + actual);
+        }
+    }
+
+    /** Every interactive widget must be non-empty and fully inside the screen. */
+    private static void assertCatalogWidgetsInBounds(ClientGameTestContext context) {
+        var bad = context.computeOnClient(mc -> {
+            var screen = requireCatalog(mc);
+            var complaints = new java.util.ArrayList<String>();
+            for (var rect : CatalogScreenTestAccess.widgetBounds(screen)) {
+                if (rect[2] <= 0 || rect[3] <= 0) {
+                    complaints.add("empty " + java.util.Arrays.toString(rect));
+                } else if (rect[0] < 0 || rect[1] < 0 || rect[0] + rect[2] > screen.width
+                        || rect[1] + rect[3] > screen.height) {
+                    complaints.add("out of bounds " + java.util.Arrays.toString(rect)
+                            + " on " + screen.width + "x" + screen.height);
+                }
+            }
+            return complaints;
+        });
+        if (!bad.isEmpty()) {
+            throw new AssertionError("catalog widgets must sit inside the screen: " + bad);
+        }
+    }
+
+    /**
+     * Settings geometry at the rescaled size: all six rows plus Done fit on-screen with no
+     * overlap. Done returns to the same catalog, which keeps its query.
+     */
+    private static void assertSettingsGeometryAtScale(ClientGameTestContext context) {
+        var catalog = context.computeOnClient(FindMyItemsClientGameTest::requireCatalog);
+        context.runOnClient(mc -> mc.gui.setScreen(ConfigScreen.create(
+                catalog, FindMyItemsClient.config(), FindMyItemsClient.configPath())));
+        context.waitForScreen(ConfigScreen.class);
+        var bad = context.computeOnClient(mc -> {
+            var screen = requireSettings(mc);
+            var complaints = new java.util.ArrayList<String>();
+            var seen = new java.util.ArrayList<int[]>();
+            for (var rect : ConfigScreenTestAccess.settingsBounds(screen)) {
+                if (rect[2] <= 0 || rect[3] <= 0) {
+                    complaints.add("empty " + java.util.Arrays.toString(rect));
+                } else if (rect[0] < 0 || rect[1] < 0 || rect[0] + rect[2] > screen.width
+                        || rect[1] + rect[3] > screen.height) {
+                    complaints.add("out of bounds " + java.util.Arrays.toString(rect)
+                            + " on " + screen.width + "x" + screen.height);
+                }
+                for (var other : seen) {
+                    if (rect[0] < other[0] + other[2] && other[0] < rect[0] + rect[2]
+                            && rect[1] < other[1] + other[3] && other[1] < rect[1] + rect[3]) {
+                        complaints.add("overlap " + java.util.Arrays.toString(rect));
+                        break;
+                    }
+                }
+                seen.add(rect);
+            }
+            if (seen.size() != 7) {
+                complaints.add("expected 6 rows plus Done, found " + seen.size());
+            }
+            return complaints;
+        });
+        if (!bad.isEmpty()) {
+            throw new AssertionError("settings must fit its scale without overlap: " + bad);
+        }
+        context.takeScreenshot("settings-rescaled");
+        context.clickScreenButton("gui.done");
+        context.waitForScreen(CatalogScreen.class);
+        waitForCondition(context, "catalog query surviving settings", 20,
+                mc -> catalogSearchText(mc).equals("diamond"));
+    }
+
     private static CatalogScreen requireCatalog(net.minecraft.client.Minecraft minecraft) {
         if (!(minecraft.gui.screen() instanceof CatalogScreen screen)) {
             throw new AssertionError("catalog screen is not open");
         }
         return screen;
+    }
+
+    private static ConfigScreen requireSettings(net.minecraft.client.Minecraft minecraft) {
+        if (!(minecraft.gui.screen() instanceof ConfigScreen screen)) {
+            throw new AssertionError("settings screen is not open");
+        }
+        return screen;
+    }
+
+    /** Screen-space center of a settings row, converted to window pixels for real clicks. */
+    private static void clickSettingsRow(ClientGameTestContext context, int row) {
+        var cursor = context.computeOnClient(mc -> {
+            var center = ConfigScreenTestAccess.rowCenter(requireSettings(mc), row);
+            var window = mc.getWindow();
+            return new double[] {
+                    center[0] * window.getScreenWidth() / window.getGuiScaledWidth(),
+                    center[1] * window.getScreenHeight() / window.getGuiScaledHeight()
+            };
+        });
+        context.getInput().setCursorPos(cursor[0], cursor[1]);
+        context.waitTicks(1);
+        context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+    }
+
+    /**
+     * The vanilla settings screen preserves all six settings, edits the shared instance through
+     * real clicks, and persists through both Done and Esc — Esc reaches {@code onClose} in
+     * vanilla, so both paths save and both return to the parent.
+     */
+    private static void assertSettingsScreenPreservesAndPersists(ClientGameTestContext context) {
+        context.setScreen(() -> null);
+        waitForCondition(context, "no screen", 20, mc -> mc.gui.screen() == null);
+        var original = context.computeOnClient(mc -> new int[] {
+                FindMyItemsClient.config().rescanIntervalSeconds,
+                FindMyItemsClient.config().searchDistanceChunks,
+                FindMyItemsClient.config().retrieveDistanceBlocks,
+                FindMyItemsClient.config().indexEnderInventory ? 1 : 0,
+                FindMyItemsClient.config().filterInventory ? 1 : 0,
+                FindMyItemsClient.config().filterContainers ? 1 : 0});
+        try {
+            context.runOnClient(mc -> mc.gui.setScreen(ConfigScreen.create(
+                    null, FindMyItemsClient.config(), FindMyItemsClient.configPath())));
+            context.waitForScreen(ConfigScreen.class);
+            context.takeScreenshot("settings");
+            var rows = context.computeOnClient(mc -> ConfigScreenTestAccess.rows(requireSettings(mc)).size());
+            if (rows != 6) {
+                throw new AssertionError("settings must preserve all six settings, found " + rows + " rows");
+            }
+
+            // Row 3 is the ender toggle: flip it with a real click into the shared instance.
+            var enderBefore = original[3] == 1;
+            clickSettingsRow(context, 3);
+            waitForCondition(context, "ender toggle flipping the shared config", 20,
+                    mc -> FindMyItemsClient.config().indexEnderInventory != enderBefore);
+            var toggleMessage = context.computeOnClient(mc ->
+                    ConfigScreenTestAccess.rowMessage(requireSettings(mc), 3));
+            if (!toggleMessage.endsWith(enderBefore ? "OFF" : "ON")) {
+                throw new AssertionError("toggled row must name its new state, shows: " + toggleMessage);
+            }
+
+            // Row 0 is the rescan slider: move it to Disabled and watch the label follow.
+            context.runOnClient(mc -> ConfigScreenTestAccess.setSliderValue(requireSettings(mc), 0, 0));
+            var slider = context.computeOnClient(mc -> new Object[] {
+                    FindMyItemsClient.config().rescanIntervalSeconds,
+                    ConfigScreenTestAccess.rowMessage(requireSettings(mc), 0)});
+            if (!slider[0].equals(0) || !((String) slider[1]).contains("Disabled")) {
+                throw new AssertionError("rescan slider must write 0 and read Disabled: "
+                        + java.util.Arrays.toString(slider));
+            }
+
+            // A real Esc press: the edits must reach the file, not just the live instance.
+            context.getInput().pressKey(GLFW.GLFW_KEY_ESCAPE);
+            waitForCondition(context, "settings closed by Esc", 20, mc -> mc.gui.screen() == null);
+            var saved = context.computeOnClient(mc -> {
+                try {
+                    return java.nio.file.Files.readString(FindMyItemsClient.configPath());
+                } catch (java.io.IOException e) {
+                    throw new AssertionError("could not read saved config", e);
+                }
+            });
+            if (!saved.contains("\"rescanIntervalSeconds\": 0")
+                    || saved.contains("\"indexEnderInventory\": " + enderBefore)) {
+                throw new AssertionError("Esc must persist settings edits, file holds: " + saved);
+            }
+
+            // Reopening shows the persisted values, not the defaults.
+            context.runOnClient(mc -> mc.gui.setScreen(ConfigScreen.create(
+                    null, FindMyItemsClient.config(), FindMyItemsClient.configPath())));
+            context.waitForScreen(ConfigScreen.class);
+            var reopened = context.computeOnClient(mc -> new String[] {
+                    ConfigScreenTestAccess.rowMessage(requireSettings(mc), 0),
+                    ConfigScreenTestAccess.rowMessage(requireSettings(mc), 3)});
+            if (!reopened[0].contains("Disabled") || !reopened[1].endsWith(enderBefore ? "OFF" : "ON")) {
+                throw new AssertionError("reopened settings must show persisted values: "
+                        + java.util.Arrays.toString(reopened));
+            }
+
+            // Done returns to the parent screen, which here is no screen.
+            context.clickScreenButton("gui.done");
+            waitForCondition(context, "settings closed by Done", 20, mc -> mc.gui.screen() == null);
+        } finally {
+            context.runOnClient(mc -> {
+                var config = FindMyItemsClient.config();
+                config.rescanIntervalSeconds = original[0];
+                config.searchDistanceChunks = original[1];
+                config.retrieveDistanceBlocks = original[2];
+                config.indexEnderInventory = original[3] == 1;
+                config.filterInventory = original[4] == 1;
+                config.filterContainers = original[5] == 1;
+                config.save(FindMyItemsClient.configPath());
+                if (mc.gui.screen() instanceof ConfigScreen) mc.gui.setScreen(null);
+            });
+            context.waitTicks(2);
+        }
+    }
+
+    /**
+     * The layout toggle is a persisted preference rather than per-screen state, and a window
+     * resize rebuilds the catalog without losing the query, the results, or the view.
+     */
+    private static void assertLayoutTogglePersistsAndResizeKeepsQuery(
+            ClientGameTestContext context,
+            net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext server) {
+        // Earlier gather plans legitimately emptied the chest, so restock it and let the real
+        // rescan path re-index it: this test must not depend on leftover index state.
+        server.runOnServer(s -> {
+            var chest = (ChestBlockEntity) s.overworld().getBlockEntity(CHEST);
+            chest.clearContent();
+            chest.setItem(0, new ItemStack(Items.DIAMOND, DIAMONDS));
+            chest.setChanged();
+        });
+        waitForCondition(context, DIAMONDS + " restocked diamonds re-indexed", 150,
+                mc -> FindMyItemsClient.index().search("diamond").stream()
+                        .mapToInt(r -> r.totalCount()).sum() == DIAMONDS);
+        openCatalog(context);
+        search(context, "diamond");
+        // A real resize: change the vanilla GUI-scale option and run the same resizeGui the
+        // options screen runs, so the window mapping and the screen rebuild together. Restored
+        // in a finally so later tests keep their coordinates; the option file is never written.
+        var original = context.computeOnClient(mc -> new int[] {
+                mc.options.guiScale().get(), mc.getWindow().getGuiScaledWidth(),
+                mc.getWindow().getGuiScaledHeight()});
+        var targetScale = context.computeOnClient(mc -> mc.getWindow().getGuiScale() == 2 ? 1 : 2);
+        try {
+            context.runOnClient(mc -> {
+                mc.options.guiScale().set(targetScale);
+                mc.resizeGui();
+            });
+            waitForCondition(context, "window actually rescaled", 40,
+                    mc -> mc.gui.screen() instanceof CatalogScreen screen
+                            && screen.width == mc.getWindow().getGuiScaledWidth()
+                            && screen.height == mc.getWindow().getGuiScaledHeight()
+                            && (screen.width != original[1] || screen.height != original[2]));
+            assertScreenMatchesWindow(context);
+            waitForCondition(context, "query surviving a resize", 20,
+                    mc -> mc.gui.screen() instanceof CatalogScreen screen
+                            && catalogSearchText(mc).equals("diamond")
+                            && CatalogScreenTestAccess.rowCount(screen) == 1
+                            && CatalogScreenTestAccess.viewName(screen).equals("ITEMS"));
+            assertCatalogWidgetsInBounds(context);
+            context.takeScreenshot("catalog-resized");
+            assertSettingsGeometryAtScale(context);
+        } finally {
+            context.runOnClient(mc -> {
+                mc.options.guiScale().set(original[0]);
+                mc.resizeGui();
+            });
+            waitForCondition(context, "window scale restored", 40,
+                    mc -> mc.getWindow().getGuiScaledWidth() == original[1]
+                            && mc.getWindow().getGuiScaledHeight() == original[2]);
+        }
+        waitForCondition(context, "query surviving resize back", 20,
+                mc -> mc.gui.screen() instanceof CatalogScreen && catalogSearchText(mc).equals("diamond"));
+
+        click(context, "screen.findmyitems.layout.grid");
+        waitForCondition(context, "grid layout persisted", 20, mc -> FindMyItemsClient.config().gridLayout);
+        var savedGrid = context.computeOnClient(mc -> {
+            try {
+                return java.nio.file.Files.readString(FindMyItemsClient.configPath());
+            } catch (java.io.IOException e) {
+                throw new AssertionError("could not read saved config", e);
+            }
+        });
+        if (!savedGrid.contains("\"gridLayout\": true")) {
+            throw new AssertionError("layout toggle must persist to the config file: " + savedGrid);
+        }
+        context.setScreen(() -> null);
+        openCatalog(context);
+        var kind = context.computeOnClient(mc -> CatalogScreenTestAccess.rowKind(requireCatalog(mc)));
+        if (!kind.equals("ItemGridRow")) {
+            throw new AssertionError("reopened catalog must keep the grid layout, rows are " + kind);
+        }
+        context.takeScreenshot("items-grid-persisted");
+        click(context, "screen.findmyitems.layout.list");
+        waitForCondition(context, "list layout restored", 20, mc -> !FindMyItemsClient.config().gridLayout);
+        context.setScreen(() -> null);
+    }
+
+    /**
+     * Gathering into a plan that needs a crafting table with no table in reach fails as NO_TABLE
+     * before moving anything: the diamond and sticks stay exactly where they were.
+     */
+    private static void assertExecutorFailsWithoutTable(
+            ClientGameTestContext context,
+            net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext server) {
+        context.setScreen(() -> null);
+        waitForCondition(context, "no screen", 20, mc -> mc.gui.screen() == null);
+        server.runOnServer(s -> s.overworld().setBlockAndUpdate(CRAFTING_TABLE,
+                Blocks.AIR.defaultBlockState()));
+        server.runOnServer(s -> s.getPlayerList().getPlayers().forEach(player -> {
+            player.getInventory().clearContent();
+            player.closeContainer();
+            player.getInventory().setItem(0, new ItemStack(Items.DIAMOND));
+            player.getInventory().setItem(1, new ItemStack(Items.STICK, 2));
+        }));
+        context.waitTicks(2);
+        var executor = context.computeOnClient(mc -> {
+            mc.player.getInventory().clearContent();
+            mc.player.getInventory().setItem(0, new ItemStack(Items.DIAMOND));
+            mc.player.getInventory().setItem(1, new ItemStack(Items.STICK, 2));
+            var fresh = new CraftingExecutor(FindMyItemsClient.index(), FindMyItemsClient.config(),
+                    CraftingExecutor::currentPlayerGeneration, CraftingExecutor::currentWorldGeneration);
+            var diamond = new StackKey("minecraft:diamond", "{}");
+            var sticks = new StackKey("minecraft:stick", "{}");
+            var plan = executorPlan(new StackKey("minecraft:diamond_pickaxe", "{}"),
+                    Map.of(diamond, 1L, sticks, 2L), 1);
+            fresh.start(new CraftingExecutor.ExecutionRequest(plan, List.of(),
+                    CraftingExecutor.currentPlayerGeneration(), CraftingExecutor.currentWorldGeneration(),
+                    CraftingExecutor.Mode.GATHER_AND_CRAFT));
+            return fresh;
+        });
+        try {
+            for (int tick = 0; tick < 40; tick++) {
+                context.waitTicks(1);
+                context.runOnClient(mc -> executor.tick());
+                var terminal = context.computeOnClient(mc -> executor.status() == ExecutionStatus.NO_TABLE
+                        || executor.status() == ExecutionStatus.FAILED
+                        || executor.status() == ExecutionStatus.CANCELLED);
+                if (terminal) break;
+            }
+            var result = context.computeOnClient(mc -> new Object[] {
+                    executor.status(),
+                    executor.transferJournal().stream()
+                            .map(CraftingExecutor.TransferJournalEntry::note).toList()});
+            var held = server.computeOnServer(s -> {
+                var diamonds = 0;
+                var sticks = 0;
+                for (var player : s.getPlayerList().getPlayers()) {
+                    diamonds += player.getInventory().countItem(Items.DIAMOND);
+                    sticks += player.getInventory().countItem(Items.STICK);
+                }
+                return diamonds + "/" + sticks;
+            });
+            if (result[0] != ExecutionStatus.NO_TABLE
+                    || !((List<?>) result[1]).contains("no reachable crafting table")
+                    || !held.equals("1/2")) {
+                throw new AssertionError("missing table must fail as NO_TABLE with stock untouched: status="
+                        + result[0] + " journal=" + result[1] + " held=" + held);
+            }
+        } finally {
+            server.runOnServer(s -> {
+                s.overworld().setBlockAndUpdate(CRAFTING_TABLE, Blocks.CRAFTING_TABLE.defaultBlockState());
+                s.getPlayerList().getPlayers().forEach(player -> {
+                    player.getInventory().clearContent();
+                    player.closeContainer();
+                });
+            });
+            context.runOnClient(mc -> {
+                mc.player.getInventory().clearContent();
+                mc.player.containerMenu = mc.player.inventoryMenu;
+            });
+            context.waitTicks(2);
+        }
     }
 
     private static void assertShowingItems(ClientGameTestContext context) {
@@ -990,7 +1411,9 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
                         new BlockPos(STAND.getX(), y, STAND.getZ() + 1), Blocks.STONE.defaultBlockState());
             }
         });
-        context.waitTicks(2);
+        // The block update reaches the client on a later tick; poll for the refusal.
+        waitForCondition(context, "blocked chest refusing GhostOpen", 40,
+                mc -> !GhostOpen.canOpen(CHEST));
         var canOpen = context.computeOnClient(mc -> GhostOpen.canOpen(CHEST));
         if (canOpen) {
             throw new AssertionError("GhostOpen must refuse a chest with no visible interaction point");
@@ -1040,7 +1463,9 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
         context.getInput().holdKeyFor(options -> options.keyUse, 2);
         context.waitForScreen(ContainerScreen.class);
         // ObservationCollector indexes on the client tick after the screen is initialised.
-        context.waitTicks(5);
+        waitForCondition(context, DIAMONDS + " indexed diamonds", 60,
+                mc -> FindMyItemsClient.index() != null && FindMyItemsClient.index().search("diamond")
+                        .stream().mapToInt(r -> r.totalCount()).sum() == DIAMONDS);
         context.takeScreenshot("chest-opened");
     }
 
@@ -1074,14 +1499,17 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
             net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext server) {
         openEnderChest(context);
         context.setScreen(() -> null);
-        context.waitTicks(5);
         assertEmeraldRowAddsUp(context, "after opening both containers", CHEST_EMERALDS + ENDER_EMERALDS);
 
         // Nothing is touched here but the clock. A rescan reads the ender chest's block entity,
         // which is only the lid — the items live on the player — and used to take that for "the
         // chest is gone", stranding the contents while the block stood there in plain sight.
         context.runOnClient(mc -> FindMyItemsClient.config().rescanIntervalSeconds = 1);
-        context.waitTicks(80);
+        // One rescan at a 1-second interval rewrites the ender entry; poll for its result.
+        waitForCondition(context, "single indexed ender container after a rescan", 120,
+                mc -> FindMyItemsClient.index().snapshot().containers().stream()
+                        .filter(c -> c.contentsKey().kind() == ContainerKind.ENDER_CHEST)
+                        .count() == 1);
 
         var enderContainers = context.computeOnClient(mc -> (int) FindMyItemsClient.index().snapshot().containers()
                 .stream()
@@ -1123,10 +1551,11 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
         server.runOnServer(s -> s.getPlayerList().getPlayers().forEach(p ->
                 p.getEnderChestInventory().setItem(0, new ItemStack(Items.EMERALD, ENDER_EMERALDS))));
         // No reopening: the rescan is expected to pick the restock up through the standing block.
-        context.waitTicks(80);
         assertEmeraldRowAddsUp(context, "after a rescan found the ender chest restocked", ENDER_EMERALDS);
 
         server.runOnServer(s -> s.overworld().setBlockAndUpdate(ENDER, Blocks.AIR.defaultBlockState()));
+        // Timeout-specific wait, kept: several rescans must pass without dropping the remembered
+        // stock before the invariant below means anything.
         context.waitTicks(80);
         assertEmeraldRowAddsUp(context, "after the ender chest block was removed", ENDER_EMERALDS);
 
@@ -1141,16 +1570,16 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
 
         openCatalog(context);
         context.getInput().typeChars("emer");
-        context.waitTicks(3);
+        waitForCondition(context, "typed search \"emer\"", 20,
+                mc -> mc.gui.screen() instanceof CatalogScreen && catalogSearchText(mc).equals("emer"));
         context.takeScreenshot("items-emerald-unreachable");
         context.setScreen(() -> null);
-        context.waitTicks(5);
+        waitForCondition(context, "catalog closed", 20, mc -> mc.gui.screen() == null);
 
         // With no ender chest anywhere in the world, the count still follows the player's own
         // data: nothing is opened, nothing is placed, no chunk is read.
         server.runOnServer(s -> s.getPlayerList().getPlayers().forEach(p ->
                 p.getEnderChestInventory().setItem(0, new ItemStack(Items.EMERALD, ENDER_EMERALDS * 2))));
-        context.waitTicks(120);
         assertEmeraldRowAddsUp(context, "after the ender inventory changed with no chest placed",
                 ENDER_EMERALDS * 2);
     }
@@ -1189,9 +1618,10 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
         context.takeScreenshot(screenshot);
         context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
         // Retrieval goes out through a ghost container open and back from the server.
-        context.waitTicks(40);
+        var expectedLeft = expectedRemaining;
+        waitForCondition(context, "emerald row counting " + expectedLeft + " after taking", 100,
+                mc -> emeraldTotal(mc) == expectedLeft);
         context.setScreen(() -> null);
-        context.waitTicks(10);
 
         // The server's copy is where the items actually are; the client mirror follows it.
         var carried = server.computeOnServer(s -> {
@@ -1224,6 +1654,15 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
                 .orElse(null);
     }
 
+    private static String catalogSearchText(net.minecraft.client.Minecraft mc) {
+        return mc.gui.screen().children().stream()
+                .filter(child -> child instanceof EditBox)
+                .map(child -> (EditBox) child)
+                .findFirst()
+                .map(EditBox::getValue)
+                .orElse("<no search field>");
+    }
+
     private static void setCatalogAmount(ClientGameTestContext context, String amount) {
         context.runOnClient(mc -> mc.gui.screen().children().stream()
                 .filter(child -> child instanceof EditBox)
@@ -1231,26 +1670,38 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
                 .skip(1)
                 .findFirst()
                 .ifPresent(field -> field.setValue(amount)));
-        context.waitTicks(2);
+        waitForCondition(context, "amount " + amount, 20,
+                mc -> mc.gui.screen() != null && mc.gui.screen().children().stream()
+                        .filter(child -> child instanceof EditBox)
+                        .map(child -> (EditBox) child)
+                        .skip(1)
+                        .findFirst()
+                        .map(field -> field.getValue().equals(amount))
+                        .orElse(false));
     }
 
     /** The one invariant issue #14 is about: the headline total is the sum of what the row lists. */
     private static void assertEmeraldRowAddsUp(ClientGameTestContext context, String stage, int expectedTotal) {
-        var complaint = context.computeOnClient(mc -> {
-            var row = emeraldRow();
-            if (row == null) return "no emerald row at all";
-            var listed = row.sources().stream().mapToInt(source -> source.count()).sum();
-            if (row.totalCount() != expectedTotal) {
-                return "total is " + row.totalCount() + ", expected " + expectedTotal;
-            }
-            if (listed != row.totalCount()) {
-                return "total is " + row.totalCount() + " but its sources account for only " + listed;
-            }
-            return null;
-        });
+        // Indexing and rescans land on later ticks; poll for the invariant instead of sleeping.
+        waitForCondition(context, "emerald row adding up " + stage, 120,
+                mc -> emeraldComplaint(expectedTotal) == null);
+        var complaint = context.computeOnClient(mc -> emeraldComplaint(expectedTotal));
         if (complaint != null) {
             throw new AssertionError("emerald row " + stage + ": " + complaint);
         }
+    }
+
+    private static String emeraldComplaint(int expectedTotal) {
+        var row = emeraldRow();
+        if (row == null) return "no emerald row at all";
+        var listed = row.sources().stream().mapToInt(source -> source.count()).sum();
+        if (row.totalCount() != expectedTotal) {
+            return "total is " + row.totalCount() + ", expected " + expectedTotal;
+        }
+        if (listed != row.totalCount()) {
+            return "total is " + row.totalCount() + " but its sources account for only " + listed;
+        }
+        return null;
     }
 
     private static void openEnderChest(ClientGameTestContext context) {
@@ -1258,8 +1709,17 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
         context.waitTicks(2);
         context.getInput().holdKeyFor(options -> options.keyUse, 2);
         context.waitForScreen(ContainerScreen.class);
-        context.waitTicks(5);
+        waitForCondition(context, "indexed ender emeralds", 60,
+                mc -> emeraldTotal(mc) == CHEST_EMERALDS + ENDER_EMERALDS);
         context.takeScreenshot("ender-chest-opened");
+    }
+
+    private static int emeraldTotal(net.minecraft.client.Minecraft mc) {
+        var row = FindMyItemsClient.index().search("emerald").stream()
+                .filter(r -> r.key().itemId().equals("minecraft:emerald"))
+                .findFirst()
+                .orElse(null);
+        return row == null ? 0 : row.totalCount();
     }
 
     private static void assertIndexed(ClientGameTestContext context) {
@@ -1347,7 +1807,8 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
         for (int i = 0; i < characters; i++) {
             context.getInput().pressKey(GLFW.GLFW_KEY_BACKSPACE);
         }
-        context.waitTicks(3);
+        waitForCondition(context, "empty search", 20,
+                mc -> mc.gui.screen() instanceof CatalogScreen && catalogSearchText(mc).isEmpty());
     }
 
     private static void openCatalog(ClientGameTestContext context) {
@@ -1372,7 +1833,8 @@ public final class FindMyItemsClientGameTest implements FabricClientGameTest {
 
     private static void search(ClientGameTestContext context, String query) {
         context.getInput().typeChars(query);
-        context.waitTicks(2);
+        waitForCondition(context, "typed search \"" + query + "\"", 20,
+                mc -> mc.gui.screen() instanceof CatalogScreen && catalogSearchText(mc).equals(query));
 
         var typed = context.computeOnClient(mc -> mc.gui.screen() instanceof CatalogScreen);
         if (!typed) {

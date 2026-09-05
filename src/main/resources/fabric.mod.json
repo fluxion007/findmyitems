@@ -27,8 +27,7 @@
     "minecraft": "26.2",
     "java": ">=25",
     "fabric-api": "*",
-    "modmenu": ">=20.0.0",
-    "cloth-config": ">=26.0.0"
+    "modmenu": ">=20.0.0"
   },
   "recommends": {
     "sodium": ">=0.9.0",

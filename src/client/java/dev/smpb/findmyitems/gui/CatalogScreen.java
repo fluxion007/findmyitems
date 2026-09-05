@@ -102,6 +102,9 @@ public final class CatalogScreen extends Screen {
     private static final int TEXT_OK = 0xFF8CE07A;
     private static final int LIST_BACKGROUND = 0xC0101010;
     private static final int LIST_BORDER = 0xFF3A3A3A;
+    private static final int SCROLL_TRACK = 0xFF000000;
+    private static final int SCROLL_THUMB = 0xFF808080;
+    private static final int SCROLL_THUMB_TOP = 0xFFC0C0C0;
     private static final int CELL_HOVER = 0x60FFFFFF;
 
     public enum View { ITEMS, CONTAINERS, CRAFTING }
@@ -1275,13 +1278,16 @@ public final class CatalogScreen extends Screen {
                     actionRegions.subList(actionStart, actionRegions.size()).clear();
                 }
             }
+            // Vanilla scrollbar chrome: a dark track with a light thumb, like ObjectSelectionList.
             var maximum = layout.scrollMaximum();
             if (maximum > 0) {
                 var trackTop = getY() + 2;
                 var trackHeight = getHeight() - 4;
+                graphics.fill(getRight() - 6, trackTop, getRight() - 2, trackTop + trackHeight, SCROLL_TRACK);
                 var thumbHeight = Math.max(12, (int) (trackHeight * getHeight() / (double) (getHeight() + maximum)));
                 var thumbTop = trackTop + (int) ((trackHeight - thumbHeight) * layout.scroll() / maximum);
-                graphics.fill(getRight() - 6, thumbTop, getRight() - 2, thumbTop + thumbHeight, TEXT_DIM);
+                graphics.fill(getRight() - 6, thumbTop, getRight() - 2, thumbTop + thumbHeight, SCROLL_THUMB);
+                graphics.fill(getRight() - 6, thumbTop, getRight() - 2, thumbTop + 1, SCROLL_THUMB_TOP);
             }
             graphics.disableScissor();
         }
@@ -1346,6 +1352,27 @@ public final class CatalogScreen extends Screen {
 
     GenerationState generationState() {
         return new GenerationState(searchGeneration, planGeneration, appliedPlanGeneration);
+    }
+
+    String currentViewName() {
+        return view.name();
+    }
+
+    /** Screen-space bounds of the interactive widgets, for geometry assertions in tests. */
+    List<int[]> interactiveBounds() {
+        var bounds = new ArrayList<int[]>();
+        for (var button : tabs.values()) {
+            if (button.visible) {
+                bounds.add(new int[] {button.getX(), button.getY(), button.getWidth(), button.getHeight()});
+            }
+        }
+        for (AbstractWidget widget : List.of(layoutButton, gatherButton, craftButton, searchField, amountField,
+                rowList)) {
+            if (widget != null && widget.visible) {
+                bounds.add(new int[] {widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight()});
+            }
+        }
+        return bounds;
     }
 
     abstract class Row {

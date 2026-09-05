@@ -80,6 +80,15 @@ public final class CatalogScreenTestAccess {
         return new double[] {bounds.left() + 9, bounds.top() + bounds.height() / 2.0};
     }
 
+    public static String rowKind(CatalogScreen screen) {
+        var rows = screen.currentRows();
+        return rows.isEmpty() ? "empty" : rows.getFirst().getClass().getSimpleName();
+    }
+
+    public static java.util.List<int[]> widgetBounds(CatalogScreen screen) {
+        return screen.interactiveBounds();
+    }
+
     public static SelectionState selectionState(CatalogScreen screen) {
         var generation = screen.generationState();
         var selected = screen.selectedIdentity();
@@ -101,5 +110,9 @@ public final class CatalogScreenTestAccess {
     public static String automaticStatusKey(long missing, long indexed, boolean reachableStorage,
                                              boolean reachableCraftingTable) {
         return CatalogScreen.automaticStatusKey(missing, indexed, reachableStorage, reachableCraftingTable);
+    }
+
+    public static String viewName(CatalogScreen screen) {
+        return screen.currentViewName();
     }
 }

@@ -36,7 +36,7 @@ This prevents stale results. In single-player, the mod can keep its record accur
 
 ## Installation
 
-Find My Items requires the [Fabric mod loader](https://fabricmc.net/), [Fabric API](https://modrinth.com/mod/fabric-api), [Mod Menu](https://modrinth.com/mod/modmenu), and [Cloth Config](https://modrinth.com/mod/cloth-config).
+Find My Items requires the [Fabric mod loader](https://fabricmc.net/), [Fabric API](https://modrinth.com/mod/fabric-api), and [Mod Menu](https://modrinth.com/mod/modmenu).
 
 Requirements:
 
@@ -47,9 +47,9 @@ Requirements:
 Install:
 
 1. Install Fabric Loader for Minecraft `26.2`.
-2. Download Fabric API, Mod Menu, and Cloth Config for the same Minecraft version.
+2. Download Fabric API and Mod Menu for the same Minecraft version.
 3. Download `find-my-items-VERSION.jar` from the [releases page](https://github.com/simply-sunny/find-my-items/releases).
-4. Put all four `.jar` files in the Minecraft `mods/` folder.
+4. Put all three `.jar` files in the Minecraft `mods/` folder.
 5. Start Minecraft with the Fabric profile.
 
 Optional recommended mods:
@@ -118,6 +118,8 @@ Open the Find My Items entry in Mod Menu. Settings are stored in `config/findmyi
 | Rescan interval | `rescanIntervalSeconds` | `5` seconds | `0`–`30` | Re-read nearby indexed containers this often. `0` disables rescanning; entries update when opened. |
 | Search distance | `searchDistanceChunks` | `4` chunks | `0`–`32` | Maximum distance for rescanning. `0` means unlimited. Lower it if rescanning affects frame time. |
 | Index ender chest anywhere | `indexEnderInventory` | `true` | on/off | Keep ender-chest contents indexed without a placed ender chest. |
+| Filter inventory | `filterInventory` | `true` | on/off | Show the filter field above ordinary container screens for the player inventory. |
+| Filter containers | `filterContainers` | `true` | on/off | Show the filter field above ordinary container screens for the container itself. |
 | Retrieval reach | `retrieveDistanceBlocks` | `0` blocks | `0`–`256` | Maximum distance for retrieval and deposit. `0` uses normal reach; unloaded chunks remain unreachable. |
 
 Rescanning applies only to containers in loaded chunks. Ender-chest inventory is player data, so it is read without a placed block or loaded chunk and remains accurately counted anywhere. It is still unreachable until you are at an ender chest; the catalog marks it out of reach and explains why.

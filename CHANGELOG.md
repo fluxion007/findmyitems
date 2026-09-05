@@ -4,6 +4,24 @@ Notable changes to Find My Items (`findmyitems`). Versions follow the `MAJOR.MIN
 
 ## Unreleased
 
+## 0.1.5 — 2026-09-04
+
+### Changed
+
+- Replaced Cloth Config with native Minecraft settings widgets. Cloth Config is no longer required.
+- Settings take effect immediately and are saved with Done or Escape.
+- Updated the catalog scrollbar to vanilla-style colors.
+
+### Testing
+
+- Expanded live-client checks for settings persistence, catalog layout persistence, resizing, and crafting without a reachable table.
+- Replaced unnecessary fixed waits with bounded condition checks, reducing local live-suite runtime while retaining item-conservation and timeout checks.
+
+### Known limitations
+
+- The manual crafting-planner fixture pass documented for 0.1.4 remains unverified. Automated test results are not manual verification.
+- Multiplayer remains intentionally unsupported.
+
 ## 0.1.4 — 2026-08-04
 
 ### Added
